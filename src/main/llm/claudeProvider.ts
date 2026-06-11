@@ -1,7 +1,7 @@
+import { app } from 'electron'
 import { spawn } from 'child_process'
-import { existsSync } from 'fs'
-import { join } from 'path'
 import type { AuthStatus } from '../../shared/types'
+import { resolveClaudeCli } from './cliPath'
 import type { GenerateOptions, LlmProvider } from './provider'
 
 type AgentSdk = typeof import('@anthropic-ai/claude-agent-sdk')
@@ -24,27 +24,24 @@ export class ClaudeProvider implements LlmProvider {
   readonly id = 'claude' as const
   private cachedStatus: AuthStatus | null = null
 
-  /** Locate the CLI bundled with the Agent SDK (used for the sign-in flow). */
-  private bundledCliPath(): string | undefined {
-    const candidates = [
-      join(
-        process.cwd(),
-        'node_modules',
-        '@anthropic-ai',
-        `claude-agent-sdk-${process.platform}-${process.arch}`,
-        process.platform === 'win32' ? 'claude.exe' : 'claude'
-      ),
-      // packaged app: unpacked asar location
-      join(
-        process.resourcesPath ?? '',
-        'app.asar.unpacked',
-        'node_modules',
-        '@anthropic-ai',
-        `claude-agent-sdk-${process.platform}-${process.arch}`,
-        process.platform === 'win32' ? 'claude.exe' : 'claude'
-      )
-    ]
-    return candidates.find((p) => p && existsSync(p))
+  /**
+   * Locate the Claude CLI: packaged extraResources copy, dev node_modules,
+   * or a global `claude` on PATH. Used for the sign-in flow AND passed to
+   * the SDK so packaged apps never depend on its internal lookup.
+   */
+  private cliPath(): string | undefined {
+    return resolveClaudeCli({
+      platform: process.platform,
+      arch: process.arch,
+      resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
+      appPath: app.getAppPath()
+    })
+  }
+
+  /** SDK options ensuring queries use the same CLI binary we resolved. */
+  private sdkPathOptions(): { pathToClaudeCodeExecutable?: string } {
+    const cli = this.cliPath()
+    return cli ? { pathToClaudeCodeExecutable: cli } : {}
   }
 
   async status(): Promise<AuthStatus> {
@@ -53,7 +50,7 @@ export class ClaudeProvider implements LlmProvider {
       const { query } = await loadSdk()
       const q = query({
         prompt: 'ping',
-        options: { maxTurns: 1, allowedTools: [], settingSources: [] }
+        options: { maxTurns: 1, allowedTools: [], settingSources: [], ...this.sdkPathOptions() }
       })
       const info = await q.accountInfo()
       q.close()
@@ -76,8 +73,12 @@ export class ClaudeProvider implements LlmProvider {
 
   async signIn(): Promise<void> {
     this.cachedStatus = null
-    const cli = this.bundledCliPath()
-    if (!cli) throw new Error('Bundled Claude runtime not found')
+    const cli = this.cliPath()
+    if (!cli) {
+      throw new Error(
+        'Claude runtime not found. Reinstall VaultAdvisor, or install Claude Code (claude.com/code) and try again.'
+      )
+    }
     // Open a visible terminal running the interactive Claude login.
     // The user completes the browser OAuth there; the SDK then picks up
     // the stored credential. The renderer re-checks status afterwards.
@@ -126,6 +127,7 @@ export class ClaudeProvider implements LlmProvider {
         allowedTools: cfg.tools,
         permissionMode: 'bypassPermissions',
         settingSources: [],
+        ...this.sdkPathOptions(),
         ...(cfg.system ? { systemPrompt: cfg.system } : {})
       }
     })

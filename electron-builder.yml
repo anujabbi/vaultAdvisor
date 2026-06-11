@@ -12,6 +12,9 @@ win:
   target:
     - nsis
   artifactName: VaultAdvisor-Setup-${version}.exe
+  extraResources:
+    - from: node_modules/@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe
+      to: claude/claude.exe
 nsis:
   oneClick: true
   deleteAppDataOnUninstall: false
@@ -20,4 +23,7 @@ mac:
     - dmg
   category: public.app-category.finance
   artifactName: VaultAdvisor-${version}.dmg
+  extraResources:
+    - from: node_modules/@anthropic-ai/claude-agent-sdk-darwin-${arch}/claude
+      to: claude/claude
 publish: null
