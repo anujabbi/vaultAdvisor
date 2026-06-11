@@ -1,0 +1,24 @@
+[
+  { "wait": 900, "file": "C:/Users/anuja/vaultAdvisor/site/shots/demo-dashboard.png" },
+  {
+    "js": "[...document.querySelectorAll('.acard')].find(e => e.textContent.includes('NVIDIA')).click()",
+    "wait": 900,
+    "file": "C:/Users/anuja/vaultAdvisor/site/shots/demo-advice-nvda.png"
+  },
+  {
+    "js": "document.querySelector('.modal .checklist').scrollIntoView({ block: 'center' })",
+    "wait": 700,
+    "file": "C:/Users/anuja/vaultAdvisor/site/shots/demo-advice-nvda-checklist.png"
+  },
+  { "js": "document.querySelector('.overlay').click()", "wait": 600 },
+  {
+    "js": "[...document.querySelectorAll('.acard')].find(e => e.textContent.includes('401(k) room')).click()",
+    "wait": 900,
+    "file": "C:/Users/anuja/vaultAdvisor/site/shots/demo-advice-401k.png"
+  },
+  {
+    "js": "document.querySelector('.modal .checklist').scrollIntoView({ block: 'center' })",
+    "wait": 700,
+    "file": "C:/Users/anuja/vaultAdvisor/site/shots/demo-advice-401k-checklist.png"
+  }
+]

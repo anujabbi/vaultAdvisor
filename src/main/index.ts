@@ -30,17 +30,31 @@ function createWindow(): void {
     // Dev utility: VA_SCREENSHOT=<path> captures the window and exits.
     // VA_SWITCH_TEST=demo|personal first performs a live vault switch via
     // the real renderer IPC path (same code the topbar chip runs).
+    // VA_SHOTS=<json path> runs a scripted capture session:
+    //   [{ "js": "<run in page>", "wait": ms, "file": "<png path>" }, ...]
     const shotPath = process.env.VA_SCREENSHOT
-    if (shotPath) {
+    const shotsPlan = process.env.VA_SHOTS
+    if (shotPath || shotsPlan) {
       setTimeout(async () => {
+        const { writeFileSync, readFileSync } = await import('fs')
         const target = process.env.VA_SWITCH_TEST
         if (target === 'demo' || target === 'personal') {
           await win.webContents.executeJavaScript(`window.vault.vaults.switch('${target}')`)
           await new Promise((r) => setTimeout(r, 3500)) // let reload + re-render finish
         }
-        const img = await win.webContents.capturePage()
-        const { writeFileSync } = await import('fs')
-        writeFileSync(shotPath, img.toPNG())
+        if (shotsPlan) {
+          const steps: { js?: string; wait?: number; file?: string }[] = JSON.parse(
+            readFileSync(shotsPlan, 'utf8')
+          )
+          for (const step of steps) {
+            if (step.js) await win.webContents.executeJavaScript(step.js)
+            await new Promise((r) => setTimeout(r, step.wait ?? 600))
+            if (step.file) writeFileSync(step.file, (await win.webContents.capturePage()).toPNG())
+          }
+        }
+        if (shotPath) {
+          writeFileSync(shotPath, (await win.webContents.capturePage()).toPNG())
+        }
         app.quit()
       }, 3500)
     }
