@@ -25,7 +25,19 @@ function createWindow(): void {
     }
   })
 
-  win.on('ready-to-show', () => win.show())
+  win.on('ready-to-show', () => {
+    win.show()
+    // Dev utility: VA_SCREENSHOT=<path> captures the window and exits.
+    const shotPath = process.env.VA_SCREENSHOT
+    if (shotPath) {
+      setTimeout(async () => {
+        const img = await win.webContents.capturePage()
+        const { writeFileSync } = await import('fs')
+        writeFileSync(shotPath, img.toPNG())
+        app.quit()
+      }, 3500)
+    }
+  })
   win.webContents.setWindowOpenHandler(({ url }) => {
     // citations and external links open in the system browser
     if (url.startsWith('http')) shell.openExternal(url)

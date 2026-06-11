@@ -1,9 +1,18 @@
-import { query } from '@anthropic-ai/claude-agent-sdk'
 import { spawn } from 'child_process'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import type { AuthStatus } from '../../shared/types'
 import type { GenerateOptions, LlmProvider } from './provider'
+
+type AgentSdk = typeof import('@anthropic-ai/claude-agent-sdk')
+
+// The Agent SDK is ESM-only; the Electron main bundle is CJS, so load it
+// with a dynamic import (preserved as import() in the CJS output).
+let sdkPromise: Promise<AgentSdk> | null = null
+function loadSdk(): Promise<AgentSdk> {
+  sdkPromise ??= import('@anthropic-ai/claude-agent-sdk')
+  return sdkPromise
+}
 
 /**
  * Claude provider — uses the Claude Agent SDK with the user's own
@@ -41,6 +50,7 @@ export class ClaudeProvider implements LlmProvider {
   async status(): Promise<AuthStatus> {
     if (this.cachedStatus?.authenticated) return this.cachedStatus
     try {
+      const { query } = await loadSdk()
       const q = query({
         prompt: 'ping',
         options: { maxTurns: 1, allowedTools: [], settingSources: [] }
@@ -108,6 +118,7 @@ export class ClaudeProvider implements LlmProvider {
     prompt: string,
     cfg: { tools: string[]; system?: string; onDelta?: (t: string) => void }
   ): Promise<string> {
+    const { query } = await loadSdk()
     const q = query({
       prompt,
       options: {

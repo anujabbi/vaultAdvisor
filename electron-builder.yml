@@ -1,0 +1,23 @@
+appId: com.anujabbi.vaultadvisor
+productName: VaultAdvisor
+directories:
+  output: dist
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - node_modules/better-sqlite3/**
+  - node_modules/@anthropic-ai/claude-agent-sdk*/**
+win:
+  target:
+    - nsis
+  artifactName: VaultAdvisor-Setup-${version}.exe
+nsis:
+  oneClick: true
+  deleteAppDataOnUninstall: false
+mac:
+  target:
+    - dmg
+  category: public.app-category.finance
+  artifactName: VaultAdvisor-${version}.dmg
+publish: null
