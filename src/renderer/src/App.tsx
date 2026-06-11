@@ -29,6 +29,7 @@ export default function App(): React.JSX.Element {
   const [openCard, setOpenCard] = useState<AdviceCard | null>(null)
   const [chat, setChat] = useState<{ thread: string; title: string; initial?: ChatMessage[] } | null>(null)
   const [toast, setToast] = useState<{ msg: string; error?: boolean } | null>(null)
+  const [vault, setVault] = useState<'personal' | 'demo'>('personal')
 
   const refresh = useCallback(async () => {
     const [s, c] = await Promise.all([window.vault.portfolio.summary(), window.vault.cards.list()])
@@ -39,6 +40,7 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     window.vault.sample.scenarios().then(setScenarios)
     window.vault.auth.status().then(setAuth)
+    window.vault.vaults.current().then(setVault)
     refresh()
   }, [refresh])
 
@@ -93,6 +95,17 @@ export default function App(): React.JSX.Element {
         <span className="lock-pip">
           <span className="dot" /> DATA STAYS ON THIS MACHINE
         </span>
+        <button
+          className={`vault-chip ${vault}`}
+          title={
+            vault === 'demo'
+              ? 'You are in the John Doe demo vault. Click to switch back to your own vault (app restarts).'
+              : 'Switch to the John Doe demo vault — sample data for demos (app restarts).'
+          }
+          onClick={() => window.vault.vaults.switch(vault === 'demo' ? 'personal' : 'demo')}
+        >
+          {vault === 'demo' ? '◉ DEMO — John Doe' : 'Demo mode'}
+        </button>
         <span className="spacer" />
         <button className={`navbtn ${view === 'home' ? 'active' : ''}`} onClick={() => setView('home')}>
           {hasData ? 'Ledger' : 'Start'}

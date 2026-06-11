@@ -13,6 +13,10 @@ import type {
 } from '../shared/types'
 
 const api = {
+  vaults: {
+    current: (): Promise<'personal' | 'demo'> => ipcRenderer.invoke('vault:current'),
+    switch: (name: 'personal' | 'demo'): Promise<void> => ipcRenderer.invoke('vault:switch', name)
+  },
   auth: {
     status: (): Promise<AuthStatus> => ipcRenderer.invoke('auth:status'),
     signIn: (): Promise<void> => ipcRenderer.invoke('auth:signIn')

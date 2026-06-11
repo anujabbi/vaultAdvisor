@@ -134,6 +134,24 @@ input:focus, textarea:focus, select:focus { border-color: var(--hairline-strong)
 
 .topbar .spacer { flex: 1; }
 
+.vault-chip {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--parchment-faint);
+  border: 1px dashed var(--hairline);
+  border-radius: 99px;
+  padding: 4px 12px;
+  transition: color 0.18s, border-color 0.18s;
+}
+.vault-chip:hover { color: var(--brass-bright); border-color: var(--hairline-strong); }
+.vault-chip.demo {
+  color: #181206;
+  background: linear-gradient(180deg, #d6b15e, #b08a38);
+  border: none;
+  font-weight: 600;
+}
+
 .navbtn {
   font-size: 13.5px;
   color: var(--parchment-dim);

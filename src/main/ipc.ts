@@ -1,4 +1,5 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { readSettings, writeSettings, type VaultName } from './settings'
 import type { Db } from './store/db'
 import {
   listCards,
@@ -21,8 +22,18 @@ export function registerIpc(deps: {
   ingest: IngestService
   engine: AdvisorEngine
   chat: ChatService
+  vault: VaultName
 }): void {
-  const { db, provider, ingest, engine, chat } = deps
+  const { db, provider, ingest, engine, chat, vault } = deps
+
+  // ---- vault switching (relaunches the app on the other vault) ----
+  ipcMain.handle('vault:current', () => vault)
+  ipcMain.handle('vault:switch', (_e, name: VaultName) => {
+    const userData = app.getPath('userData')
+    writeSettings(userData, { ...readSettings(userData), vault: name })
+    app.relaunch()
+    app.exit(0)
+  })
 
   // ---- auth ----
   ipcMain.handle('auth:status', () => provider.status())

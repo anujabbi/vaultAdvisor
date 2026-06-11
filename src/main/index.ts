@@ -1,6 +1,9 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { openDb } from './store/db'
+import { listDocuments } from './store/repos'
+import { dbPathFor, readSettings } from './settings'
+import { seedJohnDoe } from './sample/johnDoe'
 import { registerIpc } from './ipc'
 import { ClaudeProvider } from './llm/claudeProvider'
 import { IngestService } from './ingest/ingest'
@@ -53,12 +56,21 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   const userData = app.getPath('userData')
-  const db = openDb(join(userData, 'vaultadvisor.db'))
+  // Active vault: VA_VAULT env override > saved setting. The demo vault
+  // self-seeds with the John Doe dataset on first open.
+  const vault =
+    process.env.VA_VAULT === 'demo' || process.env.VA_VAULT === 'personal'
+      ? process.env.VA_VAULT
+      : readSettings(userData).vault
+  const db = openDb(dbPathFor(userData, vault))
+  if (vault === 'demo' && listDocuments(db).length === 0) {
+    seedJohnDoe(db)
+  }
   const provider = new ClaudeProvider()
   const ingest = new IngestService(db, provider, join(userData, 'vault'))
   const engine = new AdvisorEngine(db, provider)
   const chat = new ChatService(db, provider, engine)
-  registerIpc({ db, provider, ingest, engine, chat })
+  registerIpc({ db, provider, ingest, engine, chat, vault })
 
   createWindow()
   app.on('activate', () => {

@@ -1,6 +1,6 @@
 {
   "name": "vaultadvisor",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Privacy-first desktop financial advisor. Your data stays on your machine.",
   "main": "./out/main/index.js",
   "author": "anujabbi",
