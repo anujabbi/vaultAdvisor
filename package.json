@@ -7,14 +7,12 @@
   "license": "MIT",
   "homepage": "https://anujabbi.github.io/vaultAdvisor/",
   "scripts": {
-    "predev": "electron-builder install-app-deps",
+    "predev": "node scripts/pin-electron-abi.cjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "pretest": "npm rebuild better-sqlite3",
-    "test": "vitest run",
-    "posttest": "electron-builder install-app-deps",
-    "postinstall": "electron-builder install-app-deps",
+    "test": "node scripts/run-tests.cjs",
+    "postinstall": "node scripts/pin-electron-abi.cjs",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:mac": "electron-vite build && electron-builder --mac"
   },
