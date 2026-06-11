@@ -49,9 +49,14 @@ const DEFAULT_TARGET = { us_stock: 55, intl_stock: 20, bond: 20, cash: 5 }
 
 export class AdvisorEngine {
   constructor(
-    private db: Db,
+    private vm: { db: Db },
     private provider: LlmProvider
   ) {}
+
+  /** Always read through the holder so vault switches take effect live. */
+  private get db(): Db {
+    return this.vm.db
+  }
 
   summary(): PortfolioSummary {
     const holdings = listHoldings(this.db)

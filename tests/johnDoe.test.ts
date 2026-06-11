@@ -44,7 +44,7 @@ describe('John Doe demo seed', () => {
 
   it('produces a summary the dashboard math agrees with', () => {
     // engine only reads; provider is never called for the summary
-    const engine = new AdvisorEngine(db, null as never)
+    const engine = new AdvisorEngine({ db }, null as never)
     const s = engine.summary()
     expect(s.totalInvested).toBe(165150)
     expect(s.totalCash).toBe(57000)

@@ -1,9 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
-import { openDb } from './store/db'
-import { listDocuments } from './store/repos'
-import { dbPathFor, readSettings } from './settings'
-import { seedJohnDoe } from './sample/johnDoe'
+import { VaultManager } from './vaultManager'
 import { registerIpc } from './ipc'
 import { ClaudeProvider } from './llm/claudeProvider'
 import { IngestService } from './ingest/ingest'
@@ -31,9 +28,16 @@ function createWindow(): void {
   win.on('ready-to-show', () => {
     win.show()
     // Dev utility: VA_SCREENSHOT=<path> captures the window and exits.
+    // VA_SWITCH_TEST=demo|personal first performs a live vault switch via
+    // the real renderer IPC path (same code the topbar chip runs).
     const shotPath = process.env.VA_SCREENSHOT
     if (shotPath) {
       setTimeout(async () => {
+        const target = process.env.VA_SWITCH_TEST
+        if (target === 'demo' || target === 'personal') {
+          await win.webContents.executeJavaScript(`window.vault.vaults.switch('${target}')`)
+          await new Promise((r) => setTimeout(r, 3500)) // let reload + re-render finish
+        }
         const img = await win.webContents.capturePage()
         const { writeFileSync } = await import('fs')
         writeFileSync(shotPath, img.toPNG())
@@ -56,21 +60,14 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   const userData = app.getPath('userData')
-  // Active vault: VA_VAULT env override > saved setting. The demo vault
-  // self-seeds with the John Doe dataset on first open.
-  const vault =
-    process.env.VA_VAULT === 'demo' || process.env.VA_VAULT === 'personal'
-      ? process.env.VA_VAULT
-      : readSettings(userData).vault
-  const db = openDb(dbPathFor(userData, vault))
-  if (vault === 'demo' && listDocuments(db).length === 0) {
-    seedJohnDoe(db)
-  }
+  // VaultManager owns the active vault (VA_VAULT env override > saved
+  // setting) and self-seeds the demo vault with John Doe on first open.
+  const vm = new VaultManager(userData)
   const provider = new ClaudeProvider()
-  const ingest = new IngestService(db, provider, join(userData, 'vault'))
-  const engine = new AdvisorEngine(db, provider)
-  const chat = new ChatService(db, provider, engine)
-  registerIpc({ db, provider, ingest, engine, chat, vault })
+  const ingest = new IngestService(vm, provider)
+  const engine = new AdvisorEngine(vm, provider)
+  const chat = new ChatService(vm, provider, engine)
+  registerIpc({ vm, provider, ingest, engine, chat })
 
   createWindow()
   app.on('activate', () => {

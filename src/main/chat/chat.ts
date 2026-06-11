@@ -14,10 +14,15 @@ import type { ChatMessage } from '../../shared/types'
 
 export class ChatService {
   constructor(
-    private db: Db,
+    private vm: { db: Db },
     private provider: LlmProvider,
     private engine: AdvisorEngine
   ) {}
+
+  /** Always read through the holder so vault switches take effect live. */
+  private get db(): Db {
+    return this.vm.db
+  }
 
   history(thread: string): ChatMessage[] {
     return listChatMessages(this.db, thread)

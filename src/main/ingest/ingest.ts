@@ -18,11 +18,18 @@ import { EXTRACTION_INSTRUCTIONS, EXTRACTION_SCHEMAS } from './schemas'
 
 export class IngestService {
   constructor(
-    private db: Db,
-    private provider: LlmProvider,
-    private vaultDir: string
-  ) {
-    mkdirSync(vaultDir, { recursive: true })
+    private vm: { db: Db; docsDir: string },
+    private provider: LlmProvider
+  ) {}
+
+  /** Always read through the holder so vault switches take effect live. */
+  private get db(): Db {
+    return this.vm.db
+  }
+
+  private get vaultDir(): string {
+    mkdirSync(this.vm.docsDir, { recursive: true })
+    return this.vm.docsDir
   }
 
   /** Copy file into the local vault, parse it, return a draft for review. */

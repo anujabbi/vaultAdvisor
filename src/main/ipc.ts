@@ -1,5 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
-import { readSettings, writeSettings, type VaultName } from './settings'
+import { BrowserWindow, dialog, ipcMain } from 'electron'
+import type { VaultName } from './settings'
+import type { VaultManager } from './vaultManager'
 import type { Db } from './store/db'
 import {
   listCards,
@@ -17,22 +18,20 @@ import { ChatService } from './chat/chat'
 import { HERO_SCENARIOS } from './sample/persona'
 
 export function registerIpc(deps: {
-  db: Db
+  vm: VaultManager
   provider: LlmProvider
   ingest: IngestService
   engine: AdvisorEngine
   chat: ChatService
-  vault: VaultName
 }): void {
-  const { db, provider, ingest, engine, chat, vault } = deps
+  const { vm, provider, ingest, engine, chat } = deps
 
-  // ---- vault switching (relaunches the app on the other vault) ----
-  ipcMain.handle('vault:current', () => vault)
+  // ---- vault switching (live swap + window reload; no relaunch) ----
+  ipcMain.handle('vault:current', () => vm.vault)
   ipcMain.handle('vault:switch', (_e, name: VaultName) => {
-    const userData = app.getPath('userData')
-    writeSettings(userData, { ...readSettings(userData), vault: name })
-    app.relaunch()
-    app.exit(0)
+    vm.switch(name)
+    for (const w of BrowserWindow.getAllWindows()) w.webContents.reload()
+    return vm.vault
   })
 
   // ---- auth ----
@@ -60,26 +59,26 @@ export function registerIpc(deps: {
     const summary = JSON.stringify(edited).slice(0, 1500)
     return chat.openProfiling(docId, kind, summary)
   })
-  ipcMain.handle('docs:list', () => listDocuments(db))
+  ipcMain.handle('docs:list', () => listDocuments(vm.db))
 
   // ---- portfolio / profile ----
   ipcMain.handle('portfolio:summary', () => engine.summary())
-  ipcMain.handle('profile:list', () => listProfileFacts(db))
+  ipcMain.handle('profile:list', () => listProfileFacts(vm.db))
   ipcMain.handle('profile:set', (_e, key: string, value: string) => {
-    setProfileFact(db, { key, value, source: 'manual' })
-    return listProfileFacts(db)
+    setProfileFact(vm.db, { key, value, source: 'manual' })
+    return listProfileFacts(vm.db)
   })
 
   // ---- advice cards ----
   ipcMain.handle('cards:list', () => engine.refreshAvailability())
   ipcMain.handle('cards:generate', (_e, domain: AdviceDomain) => engine.generateCard(domain))
   ipcMain.handle('cards:dismiss', (_e, domain: AdviceDomain) => {
-    setCardStatus(db, domain, 'dismissed')
-    return listCards(db)
+    setCardStatus(vm.db, domain, 'dismissed')
+    return listCards(vm.db)
   })
   ipcMain.handle('checklist:toggle', (_e, itemId: number, done: boolean) => {
-    toggleChecklistItem(db, itemId, done)
-    return listCards(db)
+    toggleChecklistItem(vm.db, itemId, done)
+    return listCards(vm.db)
   })
 
   // ---- chat ----
