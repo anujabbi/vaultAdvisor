@@ -1,0 +1,37 @@
+{
+  "name": "vaultadvisor",
+  "version": "0.1.0",
+  "description": "Privacy-first desktop financial advisor. Your data stays on your machine.",
+  "main": "./out/main/index.js",
+  "author": "anujabbi",
+  "license": "MIT",
+  "homepage": "https://anujabbi.github.io/vaultAdvisor/",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "postinstall": "electron-builder install-app-deps",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "dist:mac": "electron-vite build && electron-builder --mac"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.172",
+    "better-sqlite3": "^11.8.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.3.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.8"
+  }
+}
