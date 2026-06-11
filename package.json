@@ -10,7 +10,9 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "pretest": "npm rebuild better-sqlite3",
     "test": "vitest run",
+    "posttest": "electron-builder install-app-deps",
     "postinstall": "electron-builder install-app-deps",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:mac": "electron-vite build && electron-builder --mac"
