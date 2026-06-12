@@ -1,5 +1,5 @@
 [
-  { "wait": 900, "file": "C:/Users/anuja/vaultAdvisor/site/shots/demo-dashboard.png" },
+  { "wait": 2000, "file": "C:/Users/anuja/vaultAdvisor/site/shots/demo-dashboard.png" },
   {
     "js": "[...document.querySelectorAll('.acard')].find(e => e.textContent.includes('NVIDIA')).click()",
     "wait": 900,

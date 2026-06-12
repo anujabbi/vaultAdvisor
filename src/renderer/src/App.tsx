@@ -93,7 +93,7 @@ export default function App(): React.JSX.Element {
           Vault<em>Advisor</em>
         </span>
         <span className="lock-pip">
-          <span className="dot" /> DATA STAYS ON THIS MACHINE
+          <span className="dot" /> NO ACCOUNT LINKING · STORED ON THIS MACHINE
         </span>
         <button
           className={`vault-chip ${vault}`}
@@ -154,8 +154,8 @@ export default function App(): React.JSX.Element {
 
       <footer className="disclaimer">
         VaultAdvisor provides educational analysis, not professional financial, tax, or legal
-        advice. Verify with a qualified professional before acting. · Open source — your data
-        never leaves this machine.
+        advice. Verify with a qualified professional before acting. · Open source — stored on
+        this machine, analyzed only by your own AI.
       </footer>
 
       {uploadKind && (

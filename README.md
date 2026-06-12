@@ -1,12 +1,12 @@
 # VaultAdvisor
 
-**Real financial advice that never leaves your machine.**
+**Financial advice without handing over your logins.**
 
-VaultAdvisor is a privacy-first desktop financial advisor for US users. Upload your brokerage
-statements, tax return, pay stubs, and bank statements — they're parsed and analyzed entirely
-from your own computer. There is no VaultAdvisor server, no account, no cloud database. The
-only party that ever sees your data is the AI provider you already trust, via **your own
-"Sign in with Claude"** subscription.
+VaultAdvisor is a privacy-first desktop financial advisor for US users. No account linking, no
+credentials, no aggregators: you download your brokerage statements, tax return, pay stubs, and
+bank statements yourself and drop them into the app, which stores them right on your machine.
+Analysis runs on **your own "Sign in with Claude" subscription** — never through us. There is
+no VaultAdvisor server, no account, no cloud database.
 
 🌐 **Marketing page / downloads:** https://anujabbi.github.io/vaultAdvisor/
 

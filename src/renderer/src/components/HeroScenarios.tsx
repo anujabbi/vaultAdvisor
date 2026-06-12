@@ -12,13 +12,13 @@ export function HeroScenarios(props: {
     <div className="hero">
       <div className="hero-kicker">Private · Local · Yours</div>
       <h1>
-        Real financial advice that <em>never leaves</em> your machine.
+        Financial advice without <em>handing over</em> your logins.
       </h1>
       <p className="hero-sub">
-        VaultAdvisor reads your statements right here on this computer, finds the money you're
-        leaving on the table, and hands you a checklist to go get it. No account. No cloud
-        database. The only one who sees your numbers is the AI you already trust — signed in as
-        you.
+        No account connections, no credentials, no aggregators. You download the statements; the
+        app stores them right on your machine — then finds the money you're leaving on the table
+        and hands you a checklist to go get it. Analysis runs on your own Claude subscription,
+        never through us.
       </p>
 
       <div className="scenario-grid">
