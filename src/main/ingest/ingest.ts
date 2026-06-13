@@ -11,12 +11,11 @@ import {
   setDocumentStatus,
   upsertAccount
 } from '../store/repos'
-import type { DocKind, ExtractionDraft } from '../../shared/types'
+import type { DocKind, ExtractionDraft, UploadResult } from '../../shared/types'
 import type { LlmProvider } from '../llm/provider'
 import { parseJsonLoose } from '../llm/claudeProvider'
 import { EXTRACTION_INSTRUCTIONS, EXTRACTION_SCHEMAS } from './schemas'
 import { parseDocument } from '../parse/registry'
-import type { UploadResult } from '../parse/types'
 
 const EMPTY_DRAFT: Record<DocKind, unknown> = {
   brokerage: { account: { name: '', kind: 'taxable', institution: '' }, holdings: [] },

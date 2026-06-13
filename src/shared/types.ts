@@ -181,3 +181,8 @@ export interface StreamChunk {
   done?: boolean
   error?: string
 }
+
+/** Result of a Phase-1 (offline) document upload: a parsed draft or a fallback. */
+export type UploadResult =
+  | { kind: 'draft'; draft: ExtractionDraft }
+  | { kind: 'fallback'; docId: number; docKind: DocKind; reason: string }

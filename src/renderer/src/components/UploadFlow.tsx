@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import type { ChatMessage, DocKind, ExtractionDraft } from '../../../shared/types'
+import type { DocKind, ExtractionDraft } from '../../../shared/types'
 
 const KIND_LABELS: Record<DocKind, string> = {
   brokerage: 'Brokerage / 401(k) statement',
@@ -8,34 +8,64 @@ const KIND_LABELS: Record<DocKind, string> = {
   bank: 'Bank statement'
 }
 
+type Phase = 'pick' | 'parsing' | 'review' | 'saving' | 'fallback' | 'consent'
+
 /**
- * Modal flow: pick file -> parsing -> review extraction -> confirm.
- * On confirm, the advisor opens a profiling conversation (returned messages).
+ * Phase 1 (offline-first) upload flow: pick -> local parse -> review -> save.
+ * On a parse miss it offers manual entry (offline) or an explicit per-document
+ * AI parse (consented). Nothing leaves the machine unless the user picks "Use my AI".
  */
 export function UploadFlow(props: {
   kind: DocKind
   onClose: () => void
-  onConfirmed: (profilingThread: string, messages: ChatMessage[]) => void
+  onConfirmed: () => void
   onError: (msg: string) => void
 }): React.JSX.Element {
-  const [phase, setPhase] = useState<'pick' | 'parsing' | 'review' | 'saving'>('pick')
+  const [phase, setPhase] = useState<Phase>('pick')
   const [draft, setDraft] = useState<ExtractionDraft | null>(null)
   const [edited, setEdited] = useState<any>(null)
+  const [fallback, setFallback] = useState<{ docId: number; reason: string } | null>(null)
 
   async function pick(): Promise<void> {
     setPhase('parsing')
     try {
-      const d = await window.vault.docs.pick(props.kind)
-      if (!d) {
+      const res = await window.vault.docs.pick(props.kind)
+      if (!res) {
         setPhase('pick')
         return
       }
+      if (res.kind === 'draft') {
+        setDraft(res.draft)
+        setEdited(res.draft.data)
+        setPhase('review')
+        return
+      }
+      setFallback({ docId: res.docId, reason: res.reason })
+      setPhase('fallback')
+    } catch (e) {
+      props.onError(e instanceof Error ? e.message : String(e))
+      props.onClose()
+    }
+  }
+
+  async function chooseManual(): Promise<void> {
+    const d = await window.vault.docs.manualDraft(props.kind)
+    setDraft(d)
+    setEdited(d.data)
+    setPhase('review')
+  }
+
+  async function chooseCloud(): Promise<void> {
+    if (!fallback) return
+    setPhase('parsing')
+    try {
+      const d = await window.vault.docs.cloudParse(fallback.docId, props.kind)
       setDraft(d)
       setEdited(d.data)
       setPhase('review')
     } catch (e) {
       props.onError(e instanceof Error ? e.message : String(e))
-      props.onClose()
+      setPhase('fallback')
     }
   }
 
@@ -43,8 +73,8 @@ export function UploadFlow(props: {
     if (!draft) return
     setPhase('saving')
     try {
-      const messages = await window.vault.docs.confirm(draft.docId, props.kind, edited)
-      props.onConfirmed(`profiling:${draft.docId}`, messages)
+      await window.vault.docs.confirm(draft.docId, props.kind, edited)
+      props.onConfirmed()
     } catch (e) {
       props.onError(e instanceof Error ? e.message : String(e))
       setPhase('review')
@@ -64,9 +94,9 @@ export function UploadFlow(props: {
               Add it to the vault
             </h2>
             <p style={{ color: 'var(--parchment-dim)', fontSize: 14, marginBottom: 20 }}>
-              Choose a PDF or CSV export. The file is copied into a local vault folder on this
-              machine and parsed by your signed-in AI — you'll review everything it reads before
-              anything is saved.
+              Choose a PDF, CSV, or Excel export. The file is read <strong>right here on this
+              machine</strong> — no sign-in, no network — and you'll review everything before
+              anything is saved. CSV/Excel exports read most reliably.
             </p>
             <button className="btn-brass" onClick={pick}>
               Choose file…
@@ -82,9 +112,55 @@ export function UploadFlow(props: {
             <div className="shimmer" style={{ width: '70%', marginBottom: 10 }} />
             <div className="shimmer" style={{ width: '55%', marginBottom: 10 }} />
             <div className="shimmer" style={{ width: '63%' }} />
-            <p style={{ color: 'var(--parchment-faint)', fontSize: 12.5, marginTop: 16 }}>
-              This can take up to a minute for dense statements.
+          </>
+        )}
+
+        {phase === 'fallback' && (
+          <>
+            <h2 className="serif" style={{ fontSize: 26, marginBottom: 8 }}>
+              I couldn’t read this one offline
+            </h2>
+            <p style={{ color: 'var(--parchment-dim)', fontSize: 14, marginBottom: 20 }}>
+              {fallback?.reason === 'scanned_pdf'
+                ? 'This looks like a scanned image with no text to read. '
+                : 'This institution or layout isn’t recognized yet. '}
+              Choose how to proceed:
             </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button className="btn-brass" onClick={chooseManual}>
+                Enter it manually — stays on this machine
+              </button>
+              <button className="btn-ghost" onClick={() => setPhase('consent')}>
+                Use my AI to read it…
+              </button>
+              <button className="btn-quiet" onClick={props.onClose}>
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+
+        {phase === 'consent' && (
+          <>
+            <h2 className="serif" style={{ fontSize: 26, marginBottom: 8 }}>
+              Send this document to your AI?
+            </h2>
+            <p style={{ color: 'var(--parchment-dim)', fontSize: 14, marginBottom: 8 }}>
+              To read it, this <strong>one document</strong> — including any account numbers it
+              contains — will be sent to your own Claude account. Nothing is stored by VaultAdvisor,
+              and only this document is sent.
+            </p>
+            <p style={{ color: 'var(--parchment-faint)', fontSize: 12.5, marginBottom: 20 }}>
+              Tip: a CSV export from your institution can usually be read fully offline.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button className="btn-brass" onClick={chooseCloud}>
+                Send &amp; read
+              </button>
+              <button className="btn-quiet" onClick={() => setPhase('fallback')}>
+                Back
+              </button>
+            </div>
           </>
         )}
 

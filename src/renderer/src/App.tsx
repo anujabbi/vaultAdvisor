@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   AdviceCard,
   AdviceDomain,
@@ -30,6 +30,9 @@ export default function App(): React.JSX.Element {
   const [chat, setChat] = useState<{ thread: string; title: string; initial?: ChatMessage[] } | null>(null)
   const [toast, setToast] = useState<{ msg: string; error?: boolean } | null>(null)
   const [vault, setVault] = useState<'personal' | 'demo'>('personal')
+  const [adviceConsent, setAdviceConsent] = useState(false)
+  const [showConsent, setShowConsent] = useState(false)
+  const profilingStarted = useRef(false)
 
   const refresh = useCallback(async () => {
     const [s, c] = await Promise.all([window.vault.portfolio.summary(), window.vault.cards.list()])
@@ -41,6 +44,7 @@ export default function App(): React.JSX.Element {
     window.vault.sample.scenarios().then(setScenarios)
     window.vault.auth.status().then(setAuth)
     window.vault.vaults.current().then(setVault)
+    window.vault.advice.consentGet().then(setAdviceConsent)
     refresh()
   }, [refresh])
 
@@ -58,17 +62,45 @@ export default function App(): React.JSX.Element {
     }
   }
 
-  async function startUpload(kind: DocKind): Promise<void> {
-    const a = auth ?? (await window.vault.auth.status())
-    setAuth(a)
-    if (!a.authenticated) {
-      showToast('Sign in with Claude first — your AI does the reading.', true)
-      return
-    }
+  // Phase 1 is offline — uploading needs no sign-in.
+  function startUpload(kind: DocKind): void {
     setUploadKind(kind)
   }
 
+  // Phase 2 gate: advice/profiling/chat require explicit consent + sign-in.
+  async function ensureAdvice(): Promise<boolean> {
+    if (!adviceConsent) {
+      setShowConsent(true)
+      return false
+    }
+    const a = auth ?? (await window.vault.auth.status())
+    setAuth(a)
+    if (!a.authenticated) {
+      showToast('Sign in with Claude to get advice.', true)
+      return false
+    }
+    return true
+  }
+
+  async function maybeStartProfiling(): Promise<void> {
+    if (profilingStarted.current || !hasData) return
+    profilingStarted.current = true
+    try {
+      const msgs = await window.vault.advice.startProfiling()
+      setChat({ thread: 'profiling:main', title: 'A few quick questions', initial: msgs })
+    } catch (e) {
+      profilingStarted.current = false
+      showToast(e instanceof Error ? e.message : String(e), true)
+    }
+  }
+
+  async function openAdvisorChat(title: string): Promise<void> {
+    if (!(await ensureAdvice())) return
+    setChat({ thread: 'advisor', title })
+  }
+
   async function generate(domain: AdviceDomain): Promise<void> {
+    if (!(await ensureAdvice())) return
     setGenerating((g) => new Set(g).add(domain))
     try {
       await window.vault.cards.generate(domain)
@@ -114,7 +146,7 @@ export default function App(): React.JSX.Element {
           Profile
         </button>
         {hasData && (
-          <button className="navbtn" onClick={() => setChat({ thread: 'advisor', title: 'Your advisor' })}>
+          <button className="navbtn" onClick={() => openAdvisorChat('Your advisor')}>
             Chat
           </button>
         )}
@@ -163,11 +195,10 @@ export default function App(): React.JSX.Element {
           kind={uploadKind}
           onClose={() => setUploadKind(null)}
           onError={(m) => showToast(m, true)}
-          onConfirmed={(thread, messages) => {
+          onConfirmed={() => {
             setUploadKind(null)
             refresh()
-            setChat({ thread, title: 'A few quick questions', initial: messages })
-            showToast('Saved to your vault. New advice is lighting up.')
+            showToast('Saved to your vault.')
           }}
         />
       )}
@@ -183,7 +214,7 @@ export default function App(): React.JSX.Element {
           }}
           onChatAbout={(c) => {
             setOpenCard(null)
-            setChat({ thread: 'advisor', title: `About: ${c.title}` })
+            openAdvisorChat(`About: ${c.title}`)
           }}
         />
       )}
@@ -198,6 +229,40 @@ export default function App(): React.JSX.Element {
             refresh()
           }}
         />
+      )}
+
+      {showConsent && (
+        <div className="overlay" onClick={() => setShowConsent(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="serif" style={{ fontSize: 26, marginBottom: 10 }}>
+              Turn on advice?
+            </h2>
+            <p style={{ color: 'var(--parchment-dim)', fontSize: 14, marginBottom: 8 }}>
+              To analyze your finances, VaultAdvisor sends your <strong>de-identified summary</strong>{' '}
+              — holdings, amounts, and tax brackets — to your own Claude account. It never sends
+              account numbers or your SSN (those were never stored).
+            </p>
+            <div style={{ marginTop: 18, display: 'flex', gap: 12 }}>
+              <button
+                className="btn-brass"
+                onClick={async () => {
+                  await window.vault.advice.consentSet(true)
+                  setAdviceConsent(true)
+                  setShowConsent(false)
+                  const a = auth ?? (await window.vault.auth.status())
+                  setAuth(a)
+                  if (a.authenticated) maybeStartProfiling()
+                  else showToast('Advice is on. Sign in with Claude to begin.')
+                }}
+              >
+                Enable advice
+              </button>
+              <button className="btn-quiet" onClick={() => setShowConsent(false)}>
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && <div className={`toast ${toast.error ? 'error' : ''}`}>{toast.msg}</div>}

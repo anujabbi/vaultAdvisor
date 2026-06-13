@@ -1,4 +1,6 @@
-import type { DocKind, ExtractionDraft } from '../../shared/types'
+import type { DocKind } from '../../shared/types'
+
+export type { UploadResult } from '../../shared/types'
 
 export type RawFormat = 'csv' | 'xlsx' | 'pdf-text' | 'pdf-scanned' | 'unknown'
 
@@ -27,7 +29,3 @@ export interface Template {
 export type ParseResult =
   | { status: 'parsed'; templateId: string; data: unknown; lowConfidence: string[] }
   | { status: 'needs_fallback'; reason: 'no_template' | 'scanned_pdf' | 'unreadable' }
-
-export type UploadResult =
-  | { kind: 'draft'; draft: ExtractionDraft }
-  | { kind: 'fallback'; docId: number; docKind: DocKind; reason: string }

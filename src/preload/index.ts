@@ -9,9 +9,9 @@ import type {
   ExtractionDraft,
   HeroScenario,
   PortfolioSummary,
-  ProfileFact
+  ProfileFact,
+  UploadResult
 } from '../shared/types'
-import type { UploadResult } from '../main/parse/types'
 
 const api = {
   vaults: {
