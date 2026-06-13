@@ -14,8 +14,12 @@ no VaultAdvisor server, no account, no cloud database.
 
 - **Hero scenarios** — see what the app finds (tax-loss harvesting, concentration risk,
   idle-cash drag) on sample data before uploading anything.
-- **Document intake** — drag in PDFs/CSVs; the AI parses them and you review/correct every
-  field before anything is saved to the local SQLite database.
+- **Document intake (offline-first)** — drag in CSV/XLSX exports or text PDFs; they're parsed
+  **entirely on your machine** by per-institution templates (Fidelity, Schwab, Vanguard, IRS
+  Form 1040, plus a generic CSV fallback) — no sign-in, no network. You review/correct every
+  field before anything is saved to the local SQLite database. If a document can't be read
+  offline (unknown institution, or a scanned image PDF), you choose: **enter it manually**
+  (stays local) or **explicitly send that one document to your own Claude account** to read it.
 - **Conversational profiling** — after each upload, the advisor asks a couple of smart,
   data-grounded questions to learn your goals, risk appetite, and beliefs.
 - **Advice ledger** — recommendation cards that light up as your data unlocks them:
@@ -24,6 +28,10 @@ no VaultAdvisor server, no account, no cloud database.
   (IRS, FINRA, investor.gov, broker education pages), and gives you an
   **execution checklist** you complete manually at your broker and check off in-app.
 - **Advisor chat** — ask anything with full local context.
+
+Reading your documents is fully offline. **Advice is a separate, opt-in step**: the first time
+you ask for analysis, the app asks permission to send your *de-identified* summary (holdings,
+amounts, tax brackets — never account numbers or SSN) to your own Claude account.
 
 ## Privacy model
 
