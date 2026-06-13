@@ -38,6 +38,22 @@ export class ChatService {
     return this.history(thread)
   }
 
+  /**
+   * Phase 2 profiling: opens a single profiling thread grounded in the current
+   * SQL portfolio summary (no per-document trigger). Idempotent.
+   */
+  async openProfilingFromData(): Promise<ChatMessage[]> {
+    const thread = 'profiling:main'
+    if (this.history(thread).length > 0) return this.history(thread)
+    const s = this.engine.summary()
+    const opener = await this.provider.generate(
+      profilingOpener('your portfolio', JSON.stringify(s).slice(0, 1500)),
+      { system: ADVISOR_SYSTEM }
+    )
+    appendChatMessage(this.db, thread, 'assistant', opener)
+    return this.history(thread)
+  }
+
   async send(thread: string, userText: string, onDelta?: (t: string) => void): Promise<ChatMessage[]> {
     appendChatMessage(this.db, thread, 'user', userText)
     const transcript = this.history(thread)

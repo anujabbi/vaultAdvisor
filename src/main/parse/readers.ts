@@ -43,7 +43,7 @@ async function readPdf(filePath: string): Promise<RawDocument> {
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p)
     const content = await page.getTextContent()
-    const pageText = content.items.map((i: { str?: string }) => i.str ?? '').join(' ')
+    const pageText = content.items.map((i) => ('str' in i ? i.str : '')).join(' ')
     if (pageText.trim()) lines.push(...pageText.split('\n'))
   }
   if (lines.join('').trim().length === 0) return empty('pdf-scanned')

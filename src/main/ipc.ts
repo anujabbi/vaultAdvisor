@@ -1,5 +1,5 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron'
-import type { VaultName } from './settings'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { readSettings, writeSettings, type VaultName } from './settings'
 import type { VaultManager } from './vaultManager'
 import type { Db } from './store/db'
 import {
@@ -41,25 +41,36 @@ export function registerIpc(deps: {
   // ---- sample / hero ----
   ipcMain.handle('sample:scenarios', () => HERO_SCENARIOS)
 
-  // ---- documents ----
+  // ---- documents (Phase 1 — offline) ----
   ipcMain.handle('docs:pick', async (e, kind: DocKind) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
     const r = await dialog.showOpenDialog(win, {
       title: 'Choose a document',
-      filters: [{ name: 'Statements', extensions: ['pdf', 'csv'] }],
+      filters: [{ name: 'Statements', extensions: ['pdf', 'csv', 'xlsx', 'xls'] }],
       properties: ['openFile']
     })
     if (r.canceled || r.filePaths.length === 0) return null
     return ingest.upload(r.filePaths[0], kind)
   })
   ipcMain.handle('docs:uploadPath', (_e, path: string, kind: DocKind) => ingest.upload(path, kind))
-  ipcMain.handle('docs:confirm', async (_e, docId: number, kind: DocKind, edited: unknown) => {
+  ipcMain.handle('docs:cloudParse', (_e, docId: number, kind: DocKind) =>
+    ingest.cloudParse(docId, kind)
+  )
+  ipcMain.handle('docs:manualDraft', (_e, kind: DocKind) => ingest.manualDraft(kind))
+  ipcMain.handle('docs:confirm', (_e, docId: number, kind: DocKind, edited: unknown) => {
     ingest.confirm(docId, kind, edited)
     engine.refreshAvailability()
-    const summary = JSON.stringify(edited).slice(0, 1500)
-    return chat.openProfiling(docId, kind, summary)
   })
   ipcMain.handle('docs:list', () => listDocuments(vm.db))
+
+  // ---- advice consent (Phase 2 gate; remembered) ----
+  ipcMain.handle('advice:consent:get', () => readSettings(app.getPath('userData')).adviceConsent)
+  ipcMain.handle('advice:consent:set', (_e, v: boolean) => {
+    const userData = app.getPath('userData')
+    writeSettings(userData, { ...readSettings(userData), adviceConsent: v })
+    return v
+  })
+  ipcMain.handle('advice:startProfiling', () => chat.openProfilingFromData())
 
   // ---- portfolio / profile ----
   ipcMain.handle('portfolio:summary', () => engine.summary())

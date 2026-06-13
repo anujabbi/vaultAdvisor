@@ -5,9 +5,11 @@ export type VaultName = 'personal' | 'demo'
 
 interface Settings {
   vault: VaultName
+  /** Whether the user has consented to send de-identified data to the cloud for advice. */
+  adviceConsent: boolean
 }
 
-const DEFAULTS: Settings = { vault: 'personal' }
+const DEFAULTS: Settings = { vault: 'personal', adviceConsent: false }
 
 export function settingsPath(userData: string): string {
   return join(userData, 'settings.json')
