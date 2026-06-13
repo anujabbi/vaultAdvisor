@@ -14,8 +14,9 @@ import { Dashboard } from './components/Dashboard'
 import { CardDetail } from './components/CardDetail'
 import { ChatPanel } from './components/ChatPanel'
 import { ProfilePage } from './components/ProfilePage'
+import { AccountsPage } from './components/AccountsPage'
 
-type View = 'home' | 'profile'
+type View = 'home' | 'profile' | 'accounts'
 
 export default function App(): React.JSX.Element {
   const [auth, setAuth] = useState<AuthStatus | null>(null)
@@ -142,6 +143,11 @@ export default function App(): React.JSX.Element {
         <button className={`navbtn ${view === 'home' ? 'active' : ''}`} onClick={() => setView('home')}>
           {hasData ? 'Ledger' : 'Start'}
         </button>
+        {hasData && (
+          <button className={`navbtn ${view === 'accounts' ? 'active' : ''}`} onClick={() => setView('accounts')}>
+            Accounts
+          </button>
+        )}
         <button className={`navbtn ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
           Profile
         </button>
@@ -163,6 +169,8 @@ export default function App(): React.JSX.Element {
       <main className="main">
         {view === 'profile' ? (
           <ProfilePage />
+        ) : view === 'accounts' ? (
+          <AccountsPage onChanged={refresh} />
         ) : hasData && summary ? (
           <Dashboard
             summary={summary}
@@ -240,7 +248,8 @@ export default function App(): React.JSX.Element {
             <p style={{ color: 'var(--parchment-dim)', fontSize: 14, marginBottom: 8 }}>
               To analyze your finances, VaultAdvisor sends your <strong>de-identified summary</strong>{' '}
               — holdings, amounts, and tax brackets — to your own Claude account. It never sends
-              account numbers or your SSN (those were never stored).
+              account numbers or your SSN. Only the last 4 digits of an account number are stored,
+              locally on this machine, and they are never sent.
             </p>
             <div style={{ marginTop: 18, display: 'flex', gap: 12 }}>
               <button

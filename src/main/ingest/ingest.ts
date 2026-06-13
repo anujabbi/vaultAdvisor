@@ -2,6 +2,8 @@ import { copyFileSync, mkdirSync } from 'fs'
 import { basename, join } from 'path'
 import type { Db } from '../store/db'
 import {
+  clearAccountCash,
+  clearAccountHoldings,
   insertCash,
   insertDocument,
   insertHolding,
@@ -11,6 +13,7 @@ import {
   setDocumentStatus,
   upsertAccount
 } from '../store/repos'
+import { maskAccountNumber } from './mask'
 import type { DocKind, ExtractionDraft, UploadResult } from '../../shared/types'
 import type { LlmProvider } from '../llm/provider'
 import { parseJsonLoose } from '../llm/claudeProvider'
@@ -107,11 +110,18 @@ export class IngestService {
     const data = EXTRACTION_SCHEMAS[kind].parse(edited) as any
     const db = this.db
     if (kind === 'brokerage') {
-      const accountId = upsertAccount(db, {
-        name: data.account.name,
-        kind: data.account.kind,
-        institution: data.account.institution
-      })
+      const mask = maskAccountNumber(data.account.accountNumber)
+      const accountId = upsertAccount(
+        db,
+        {
+          name: data.account.name,
+          kind: data.account.kind,
+          institution: data.account.institution
+        },
+        mask
+      )
+      // Each upload is a fresh snapshot: replace this account's holdings.
+      clearAccountHoldings(db, accountId)
       for (const h of data.holdings) {
         const holdingId = insertHolding(db, {
           accountId,
@@ -152,11 +162,17 @@ export class IngestService {
         payPeriod: data.payPeriod
       })
     } else if (kind === 'bank') {
-      const accountId = upsertAccount(db, {
-        name: data.account.name,
-        kind: data.account.kind,
-        institution: data.account.institution
-      })
+      const mask = maskAccountNumber(data.account.accountNumber)
+      const accountId = upsertAccount(
+        db,
+        {
+          name: data.account.name,
+          kind: data.account.kind,
+          institution: data.account.institution
+        },
+        mask
+      )
+      clearAccountCash(db, accountId)
       insertCash(db, { accountId, balance: data.balance, apy: data.apy ?? 0 })
     }
     setDocumentStatus(db, docId, 'confirmed')

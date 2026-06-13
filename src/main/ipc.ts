@@ -3,9 +3,14 @@ import { readSettings, writeSettings, type VaultName } from './settings'
 import type { VaultManager } from './vaultManager'
 import type { Db } from './store/db'
 import {
+  deleteAccount,
+  deleteCash,
+  deleteHolding,
+  listAccountsWithItems,
   listCards,
   listDocuments,
   listProfileFacts,
+  renameAccount,
   setCardStatus,
   setProfileFact,
   toggleChecklistItem
@@ -62,6 +67,27 @@ export function registerIpc(deps: {
     engine.refreshAvailability()
   })
   ipcMain.handle('docs:list', () => listDocuments(vm.db))
+
+  // ---- accounts (grouped asset view; CRUD) ----
+  ipcMain.handle('accounts:list', () => listAccountsWithItems(vm.db))
+  ipcMain.handle('accounts:rename', (_e, id: number, friendlyName: string) => {
+    renameAccount(vm.db, id, friendlyName)
+    return listAccountsWithItems(vm.db)
+  })
+  ipcMain.handle('accounts:delete', (_e, id: number) => {
+    deleteAccount(vm.db, id)
+    engine.refreshAvailability()
+    return listAccountsWithItems(vm.db)
+  })
+  ipcMain.handle(
+    'accounts:deleteItem',
+    (_e, item: { itemType: 'holding' | 'cash'; id: number }) => {
+      if (item.itemType === 'holding') deleteHolding(vm.db, item.id)
+      else deleteCash(vm.db, item.id)
+      engine.refreshAvailability()
+      return listAccountsWithItems(vm.db)
+    }
+  )
 
   // ---- advice consent (Phase 2 gate; remembered) ----
   ipcMain.handle('advice:consent:get', () => readSettings(app.getPath('userData')).adviceConsent)

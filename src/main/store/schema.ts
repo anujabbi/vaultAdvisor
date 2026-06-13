@@ -14,7 +14,10 @@ CREATE TABLE IF NOT EXISTS accounts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   kind TEXT NOT NULL,
-  institution TEXT NOT NULL DEFAULT ''
+  institution TEXT NOT NULL DEFAULT '',
+  friendly_name TEXT NOT NULL DEFAULT '',
+  account_mask TEXT NOT NULL DEFAULT '',
+  last_uploaded_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS holdings (

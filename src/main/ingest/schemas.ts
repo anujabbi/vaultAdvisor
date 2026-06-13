@@ -15,7 +15,8 @@ export const brokerageExtraction = z.object({
   account: z.object({
     name: z.string(),
     kind: z.enum(['taxable', 'k401', 'ira', 'roth_ira', 'hsa']),
-    institution: z.string()
+    institution: z.string(),
+    accountNumber: z.string().optional()
   }),
   holdings: z.array(
     z.object({
@@ -61,7 +62,8 @@ export const bankExtraction = z.object({
   account: z.object({
     name: z.string(),
     kind: z.enum(['checking', 'savings']),
-    institution: z.string()
+    institution: z.string(),
+    accountNumber: z.string().optional()
   }),
   balance: z.number(),
   apy: z.number().default(0)
@@ -77,7 +79,7 @@ export const EXTRACTION_SCHEMAS: Record<DocKind, z.ZodTypeAny> = {
 /** Human/LLM-facing instructions per document kind. */
 export const EXTRACTION_INSTRUCTIONS: Record<DocKind, string> = {
   brokerage: `Extract the brokerage or 401(k) statement into JSON:
-{"account":{"name":string,"kind":"taxable"|"k401"|"ira"|"roth_ira"|"hsa","institution":string},
+{"account":{"name":string,"kind":"taxable"|"k401"|"ira"|"roth_ira"|"hsa","institution":string,"accountNumber":string},
  "holdings":[{"symbol":string,"name":string,
    "assetClass":"us_stock"|"intl_stock"|"bond"|"cash"|"real_estate"|"crypto"|"other",
    "quantity":number,"price":number,"value":number,
@@ -94,7 +96,7 @@ Include "lowConfidence":[paths] for uncertain fields.`,
  "k401Rate":number,"payPeriod":"weekly"|"biweekly"|"semimonthly"|"monthly"}
 annualGross: annualize from period gross if needed. Include "lowConfidence":[paths].`,
   bank: `Extract the bank statement into JSON:
-{"account":{"name":string,"kind":"checking"|"savings","institution":string},
+{"account":{"name":string,"kind":"checking"|"savings","institution":string,"accountNumber":string},
  "balance":number,"apy":number}
 apy: the interest rate if shown, else 0. Include "lowConfidence":[paths].`
 }

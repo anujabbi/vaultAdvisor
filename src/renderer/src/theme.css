@@ -611,3 +611,41 @@ input:focus, textarea:focus, select:focus { border-color: var(--hairline-strong)
   animation: rise 0.25s ease;
 }
 .toast.error { border-color: rgba(201,111,94,0.5); }
+
+/* ---------- accounts / asset view ---------- */
+
+.accounts-page { max-width: 920px; margin: 0 auto; padding: 40px 36px 60px; }
+
+.acct-group {
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+  margin-bottom: 18px; overflow: hidden; background: var(--ink-raised);
+}
+.acct-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--hairline);
+}
+.acct-header .spacer { flex: 1; }
+.acct-name {
+  font-family: var(--serif); font-size: 19px; color: var(--parchment);
+  background: transparent; border: 1px solid transparent; border-radius: 6px;
+  padding: 3px 8px; min-width: 180px; max-width: 320px;
+}
+.acct-name:hover { border-color: var(--hairline); }
+.acct-name:focus { border-color: var(--hairline-strong); background: var(--ink); outline: none; }
+.acct-meta { font-family: var(--mono); font-size: 11.5px; color: var(--parchment-faint); }
+.acct-total { font-size: 16px; color: var(--brass-bright); }
+
+.acct-items { width: 100%; border-collapse: collapse; }
+.acct-items td { padding: 8px 16px; border-bottom: 1px solid rgba(200,162,75,0.06); font-size: 13px; }
+.acct-items tr:last-child td { border-bottom: none; }
+.acct-items .sym { font-family: var(--mono); color: var(--brass); }
+.acct-items .desc { color: var(--parchment-dim); }
+.acct-items .qty, .acct-items .price, .acct-items .val { text-align: right; color: var(--parchment); }
+.acct-items .actions { text-align: right; width: 1%; white-space: nowrap; }
+.acct-empty { padding: 14px 16px; color: var(--parchment-faint); font-style: italic; font-size: 13px; }
+
+.btn-danger {
+  color: var(--loss); font-size: 12.5px; background: transparent;
+  border: 1px solid rgba(201,111,94,0.4); border-radius: 7px; padding: 5px 12px; cursor: pointer;
+}
+.btn-danger:hover { background: rgba(201,111,94,0.12); border-color: rgba(201,111,94,0.7); }

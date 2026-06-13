@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
+  AccountGroup,
   AdviceCard,
   AdviceDomain,
   AuthStatus,
@@ -36,6 +37,14 @@ const api = {
     confirm: (docId: number, kind: DocKind, edited: unknown): Promise<void> =>
       ipcRenderer.invoke('docs:confirm', docId, kind, edited),
     list: (): Promise<DocumentMeta[]> => ipcRenderer.invoke('docs:list')
+  },
+  accounts: {
+    list: (): Promise<AccountGroup[]> => ipcRenderer.invoke('accounts:list'),
+    rename: (id: number, friendlyName: string): Promise<AccountGroup[]> =>
+      ipcRenderer.invoke('accounts:rename', id, friendlyName),
+    delete: (id: number): Promise<AccountGroup[]> => ipcRenderer.invoke('accounts:delete', id),
+    deleteItem: (item: { itemType: 'holding' | 'cash'; id: number }): Promise<AccountGroup[]> =>
+      ipcRenderer.invoke('accounts:deleteItem', item)
   },
   advice: {
     consentGet: (): Promise<boolean> => ipcRenderer.invoke('advice:consent:get'),

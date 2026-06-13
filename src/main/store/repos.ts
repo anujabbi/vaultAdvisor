@@ -1,8 +1,10 @@
 import type { Db } from './db'
 import type {
   Account,
+  AccountGroup,
   AdviceCard,
   AdviceDomain,
+  AssetItem,
   CardStatus,
   CashAccount,
   ChatMessage,
@@ -50,15 +52,101 @@ export function listDocuments(db: Db): DocumentMeta[] {
 
 // ---------- accounts / holdings / lots ----------
 
-export function upsertAccount(db: Db, a: Omit<Account, 'id'>): number {
-  const existing = db
-    .prepare('SELECT id FROM accounts WHERE name = ? AND institution = ?')
-    .get(a.name, a.institution) as { id: number } | undefined
-  if (existing) return existing.id
+export function upsertAccount(db: Db, a: Omit<Account, 'id'>, accountMask = ''): number {
+  // Identity: prefer (institution, mask) when a mask is known (account numbers are
+  // stable across re-uploads even if the printed name drifts); else (name, institution).
+  const existing = accountMask
+    ? (db
+        .prepare('SELECT id FROM accounts WHERE institution = ? AND account_mask = ?')
+        .get(a.institution, accountMask) as { id: number } | undefined)
+    : (db
+        .prepare('SELECT id FROM accounts WHERE name = ? AND institution = ?')
+        .get(a.name, a.institution) as { id: number } | undefined)
+  if (existing) {
+    // Refresh the upload timestamp; never overwrite a user-set friendly name.
+    db.prepare(`UPDATE accounts SET last_uploaded_at = datetime('now') WHERE id = ?`).run(existing.id)
+    return existing.id
+  }
   const r = db
-    .prepare('INSERT INTO accounts (name, kind, institution) VALUES (?, ?, ?)')
-    .run(a.name, a.kind, a.institution)
+    .prepare(
+      `INSERT INTO accounts (name, kind, institution, account_mask, last_uploaded_at)
+       VALUES (?, ?, ?, ?, datetime('now'))`
+    )
+    .run(a.name, a.kind, a.institution, accountMask)
   return Number(r.lastInsertRowid)
+}
+
+export function renameAccount(db: Db, id: number, friendlyName: string): void {
+  db.prepare('UPDATE accounts SET friendly_name = ? WHERE id = ?').run(friendlyName, id)
+}
+
+export function clearAccountHoldings(db: Db, accountId: number): void {
+  db.prepare(
+    'DELETE FROM lots WHERE holding_id IN (SELECT id FROM holdings WHERE account_id = ?)'
+  ).run(accountId)
+  db.prepare('DELETE FROM holdings WHERE account_id = ?').run(accountId)
+}
+
+export function clearAccountCash(db: Db, accountId: number): void {
+  db.prepare('DELETE FROM cash WHERE account_id = ?').run(accountId)
+}
+
+export function deleteAccount(db: Db, id: number): void {
+  clearAccountHoldings(db, id)
+  clearAccountCash(db, id)
+  db.prepare('DELETE FROM accounts WHERE id = ?').run(id)
+}
+
+export function deleteHolding(db: Db, id: number): void {
+  db.prepare('DELETE FROM lots WHERE holding_id = ?').run(id)
+  db.prepare('DELETE FROM holdings WHERE id = ?').run(id)
+}
+
+export function deleteCash(db: Db, id: number): void {
+  db.prepare('DELETE FROM cash WHERE id = ?').run(id)
+}
+
+export function listAccountsWithItems(db: Db): AccountGroup[] {
+  const accounts = db
+    .prepare(
+      'SELECT id, name, friendly_name, kind, institution, account_mask, last_uploaded_at FROM accounts ORDER BY id'
+    )
+    .all() as any[]
+  const holdings = db.prepare('SELECT * FROM holdings').all() as any[]
+  const cash = db.prepare('SELECT * FROM cash').all() as any[]
+
+  return accounts.map((a) => {
+    const items: AssetItem[] = [
+      ...holdings
+        .filter((h) => h.account_id === a.id)
+        .map(
+          (h): AssetItem => ({
+            itemType: 'holding',
+            id: h.id,
+            symbol: h.symbol,
+            name: h.name,
+            assetClass: h.asset_class,
+            quantity: h.quantity,
+            price: h.price,
+            value: h.value
+          })
+        ),
+      ...cash
+        .filter((c) => c.account_id === a.id)
+        .map((c): AssetItem => ({ itemType: 'cash', id: c.id, apy: c.apy, value: c.balance }))
+    ]
+    return {
+      id: a.id,
+      name: a.name,
+      friendlyName: a.friendly_name ?? '',
+      institution: a.institution,
+      kind: a.kind,
+      accountMask: a.account_mask ?? '',
+      lastUploadedAt: a.last_uploaded_at ?? undefined,
+      totalValue: items.reduce((sum, i) => sum + i.value, 0),
+      items
+    }
+  })
 }
 
 export function insertHolding(db: Db, h: Omit<Holding, 'id'>): number {

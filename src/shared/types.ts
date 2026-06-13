@@ -48,6 +48,33 @@ export interface Account {
   institution: string
 }
 
+/** One row in the Accounts view: a holding or a cash balance. */
+export interface AssetItem {
+  itemType: 'holding' | 'cash'
+  id: number
+  symbol?: string
+  name?: string
+  assetClass?: AssetClass
+  quantity?: number
+  price?: number
+  apy?: number
+  /** holding value, or cash balance */
+  value: number
+}
+
+/** An account with its assets, for the grouped Accounts view. */
+export interface AccountGroup {
+  id: number
+  name: string
+  friendlyName: string
+  institution: string
+  kind: Account['kind']
+  accountMask: string
+  lastUploadedAt?: string
+  totalValue: number
+  items: AssetItem[]
+}
+
 export interface IncomeFact {
   id: number
   source: string
