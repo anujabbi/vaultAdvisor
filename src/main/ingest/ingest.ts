@@ -15,6 +15,30 @@ import type { DocKind, ExtractionDraft } from '../../shared/types'
 import type { LlmProvider } from '../llm/provider'
 import { parseJsonLoose } from '../llm/claudeProvider'
 import { EXTRACTION_INSTRUCTIONS, EXTRACTION_SCHEMAS } from './schemas'
+import { parseDocument } from '../parse/registry'
+import type { UploadResult } from '../parse/types'
+
+const EMPTY_DRAFT: Record<DocKind, unknown> = {
+  brokerage: { account: { name: '', kind: 'taxable', institution: '' }, holdings: [] },
+  tax_return: {
+    year: new Date().getFullYear() - 1,
+    filingStatus: 'single',
+    agi: 0,
+    taxableIncome: 0,
+    totalTax: 0,
+    stdOrItemized: 'standard',
+    deductions: {}
+  },
+  paystub: {
+    source: '',
+    annualGross: 0,
+    withholdingFedYtd: 0,
+    k401ContribYtd: 0,
+    k401Rate: 0,
+    payPeriod: 'biweekly'
+  },
+  bank: { account: { name: '', kind: 'checking', institution: '' }, balance: 0, apy: 0 }
+}
 
 export class IngestService {
   constructor(
@@ -22,7 +46,6 @@ export class IngestService {
     private provider: LlmProvider
   ) {}
 
-  /** Always read through the holder so vault switches take effect live. */
   private get db(): Db {
     return this.vm.db
   }
@@ -32,27 +55,52 @@ export class IngestService {
     return this.vm.docsDir
   }
 
-  /** Copy file into the local vault, parse it, return a draft for review. */
-  async upload(filePath: string, kind: DocKind): Promise<ExtractionDraft> {
+  private vaultPaths = new Map<number, string>()
+
+  /** Phase 1: read the document fully offline and write nothing to the network. */
+  async upload(filePath: string, kind: DocKind): Promise<UploadResult> {
     const filename = basename(filePath)
     const vaultPath = join(this.vaultDir, `${Date.now()}-${filename}`)
     copyFileSync(filePath, vaultPath)
     const docId = insertDocument(this.db, { kind, filename, vaultPath })
-    try {
-      const raw = await this.provider.extract(vaultPath, EXTRACTION_INSTRUCTIONS[kind])
-      const parsed = parseJsonLoose<Record<string, unknown>>(raw)
-      const lowConfidence = Array.isArray(parsed.lowConfidence)
-        ? (parsed.lowConfidence as string[])
-        : []
-      delete parsed.lowConfidence
-      const data = EXTRACTION_SCHEMAS[kind].parse(parsed)
+    this.vaultPaths.set(docId, vaultPath)
+    const result = await parseDocument(vaultPath, kind)
+    if (result.status === 'parsed') {
       setDocumentStatus(this.db, docId, 'review')
-      return { docId, kind, data, lowConfidence }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      setDocumentStatus(this.db, docId, 'error', msg)
-      throw new Error(`Could not read this document (${msg}). Try a CSV export from your institution.`)
+      return {
+        kind: 'draft',
+        draft: { docId, kind, data: result.data, lowConfidence: result.lowConfidence }
+      }
     }
+    setDocumentStatus(this.db, docId, 'needs_fallback', result.reason)
+    return { kind: 'fallback', docId, docKind: kind, reason: result.reason }
+  }
+
+  /** Explicit per-document opt-in: send the raw doc to the user's AI to read. */
+  async cloudParse(docId: number, kind: DocKind): Promise<ExtractionDraft> {
+    const vaultPath = this.vaultPaths.get(docId) ?? this.lookupVaultPath(docId)
+    const raw = await this.provider.extract(vaultPath, EXTRACTION_INSTRUCTIONS[kind])
+    const parsed = parseJsonLoose<Record<string, unknown>>(raw)
+    const lowConfidence = Array.isArray(parsed.lowConfidence)
+      ? (parsed.lowConfidence as string[])
+      : []
+    delete parsed.lowConfidence
+    const data = EXTRACTION_SCHEMAS[kind].parse(parsed)
+    setDocumentStatus(this.db, docId, 'review')
+    return { docId, kind, data, lowConfidence }
+  }
+
+  /** Empty skeleton for fully-offline manual entry. */
+  manualDraft(kind: DocKind): ExtractionDraft {
+    return { docId: 0, kind, data: structuredClone(EMPTY_DRAFT[kind]), lowConfidence: [] }
+  }
+
+  private lookupVaultPath(docId: number): string {
+    const row = this.db.prepare('SELECT vault_path FROM documents WHERE id = ?').get(docId) as
+      | { vault_path: string }
+      | undefined
+    if (!row) throw new Error('Document not found')
+    return row.vault_path
   }
 
   /** User confirmed (possibly edited) extraction — persist to the store. */

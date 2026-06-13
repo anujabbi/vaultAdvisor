@@ -2,7 +2,7 @@
 
 export type DocKind = 'brokerage' | 'tax_return' | 'paystub' | 'bank'
 
-export type DocStatus = 'parsing' | 'review' | 'confirmed' | 'error'
+export type DocStatus = 'parsing' | 'review' | 'confirmed' | 'error' | 'needs_fallback'
 
 export interface DocumentMeta {
   id: number
