@@ -50,8 +50,12 @@ export function seedJohnDoe(db: Db): void {
   const vxus = insertHolding(db, { accountId: fidelity, symbol: 'VXUS', name: 'Vanguard Total Intl Stock ETF', assetClass: 'intl_stock', quantity: 200, price: 62, value: 12400 })
   insertLot(db, { holdingId: vxus, quantity: 200, costBasis: 11000, acquiredAt: '2023-06-01' })
 
-  insertHolding(db, { accountId: vanguard, symbol: 'VINIX', name: 'Vanguard Institutional Index', assetClass: 'us_stock', quantity: 500, price: 90, value: 45000 })
-  insertHolding(db, { accountId: vanguard, symbol: 'BND', name: 'Vanguard Total Bond Market ETF', assetClass: 'bond', quantity: 150, price: 73, value: 10950 })
+  const vinix = insertHolding(db, { accountId: vanguard, symbol: 'VINIX', name: 'Vanguard Institutional Index', assetClass: 'us_stock', quantity: 500, price: 90, value: 45000 })
+  insertLot(db, { holdingId: vinix, quantity: 300, costBasis: 19500, acquiredAt: '2020-01-15' })
+  insertLot(db, { holdingId: vinix, quantity: 200, costBasis: 15000, acquiredAt: '2023-04-10' })
+
+  const bnd = insertHolding(db, { accountId: vanguard, symbol: 'BND', name: 'Vanguard Total Bond Market ETF', assetClass: 'bond', quantity: 150, price: 73, value: 10950 })
+  insertLot(db, { holdingId: bnd, quantity: 150, costBasis: 11700, acquiredAt: '2022-09-01' })
 
   // ---- cash / income / tax ----
   insertCash(db, { accountId: chase, balance: 42000, apy: 0.01 })

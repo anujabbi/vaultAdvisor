@@ -21,7 +21,7 @@ describe('John Doe demo seed', () => {
   it('populates every section', () => {
     expect(listDocuments(db).length).toBe(5)
     expect(listHoldings(db).length).toBe(6)
-    expect(listLots(db).length).toBe(6)
+    expect(listLots(db).length).toBe(9)
     expect(listIncome(db).length).toBe(1)
     expect(latestTaxFacts(db)?.year).toBe(2025)
     expect(listCash(db).length).toBe(2)
