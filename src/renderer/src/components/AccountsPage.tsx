@@ -9,6 +9,17 @@ function uploadedLabel(iso?: string): string {
   return isNaN(d.getTime()) ? iso : d.toLocaleDateString()
 }
 
+function dateLabel(iso?: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso + 'T00:00:00')
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString()
+}
+
+function gainLabel(gain: number): string {
+  const sign = gain >= 0 ? '+' : '−'
+  return `${sign}$${Math.abs(Math.round(gain)).toLocaleString()}`
+}
+
 export function AccountsPage({ onChanged }: { onChanged?: () => void }): React.JSX.Element {
   const [groups, setGroups] = useState<AccountGroup[]>([])
 
@@ -55,7 +66,10 @@ export function AccountsPage({ onChanged }: { onChanged?: () => void }): React.J
         </p>
       )}
 
-      {groups.map((g) => (
+      {groups.map((g) => {
+        const holdings = g.items.filter((i) => i.itemType === 'holding')
+        const cashItems = g.items.filter((i) => i.itemType === 'cash')
+        return (
         <div className="acct-group" key={g.id}>
           <div className="acct-header">
             <input
@@ -79,31 +93,69 @@ export function AccountsPage({ onChanged }: { onChanged?: () => void }): React.J
             </button>
           </div>
 
-          {g.items.length === 0 ? (
-            <div className="acct-empty">No items in this account.</div>
-          ) : (
+          {g.items.length === 0 && <div className="acct-empty">No items in this account.</div>}
+
+          {holdings.length > 0 && (
             <table className="acct-items">
+              <thead>
+                <tr>
+                  <th className="sym">Symbol</th>
+                  <th className="desc">Description</th>
+                  <th className="num qty">Qty</th>
+                  <th className="num price">Price</th>
+                  <th className="num val">Value</th>
+                  <th className="acq">Acquired</th>
+                  <th className="num gain">Unrealized</th>
+                  <th className="actions" />
+                </tr>
+              </thead>
               <tbody>
-                {g.items.map((item) => (
-                  <tr key={`${item.itemType}-${item.id}`}>
-                    <td className="sym">
-                      {item.itemType === 'cash' ? 'Cash balance' : item.symbol}
-                    </td>
-                    <td className="desc">
-                      {item.itemType === 'cash'
-                        ? item.apy
-                          ? `${item.apy}% APY`
-                          : ''
-                        : item.name}
-                    </td>
-                    <td className="num qty">
-                      {item.itemType === 'holding' && item.quantity != null
-                        ? item.quantity.toLocaleString()
-                        : ''}
-                    </td>
-                    <td className="num price">
-                      {item.itemType === 'holding' && item.price != null ? money(item.price) : ''}
-                    </td>
+                {holdings.map((item) => {
+                  const gain = item.costBasis != null ? item.value - item.costBasis : undefined
+                  return (
+                    <tr key={`holding-${item.id}`}>
+                      <td className="sym">{item.symbol}</td>
+                      <td className="desc">{item.name}</td>
+                      <td className="num qty">
+                        {item.quantity != null ? item.quantity.toLocaleString() : ''}
+                      </td>
+                      <td className="num price">{item.price != null ? money(item.price) : ''}</td>
+                      <td className="num val">{money(item.value)}</td>
+                      <td className="acq">{dateLabel(item.acquiredAt)}</td>
+                      <td className="num gain">
+                        {gain != null ? (
+                          <span className={gain >= 0 ? 'gain' : 'loss'}>{gainLabel(gain)}</span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="actions">
+                        <button className="btn-quiet" onClick={() => deleteItem(item)}>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+
+          {cashItems.length > 0 && (
+            <table className="acct-items">
+              <thead>
+                <tr>
+                  <th className="sym">Account</th>
+                  <th className="num rate">Interest rate</th>
+                  <th className="num val">Balance</th>
+                  <th className="actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {cashItems.map((item) => (
+                  <tr key={`cash-${item.id}`}>
+                    <td className="sym">Cash balance</td>
+                    <td className="num rate">{item.apy != null ? `${item.apy}%` : '—'}</td>
                     <td className="num val">{money(item.value)}</td>
                     <td className="actions">
                       <button className="btn-quiet" onClick={() => deleteItem(item)}>
@@ -116,7 +168,8 @@ export function AccountsPage({ onChanged }: { onChanged?: () => void }): React.J
             </table>
           )}
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

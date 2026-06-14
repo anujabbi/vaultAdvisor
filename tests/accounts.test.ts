@@ -166,6 +166,28 @@ describe('listAccountsWithItems', () => {
   })
 })
 
+describe('listAccountsWithItems holding aggregates', () => {
+  it('sums cost basis and reports the earliest acquired date across lots', () => {
+    const a = upsertAccount(db, { name: 'B', kind: 'taxable', institution: 'Fidelity' })
+    const h = insertHolding(db, { accountId: a, symbol: 'VTI', name: 'VTI', assetClass: 'us_stock', quantity: 100, price: 280, value: 28000 })
+    insertLot(db, { holdingId: h, quantity: 60, costBasis: 12000, acquiredAt: '2023-05-01' })
+    insertLot(db, { holdingId: h, quantity: 40, costBasis: 11000, acquiredAt: '2025-11-01' })
+
+    const item = listAccountsWithItems(db)[0].items[0]
+    expect(item.costBasis).toBe(23000)
+    expect(item.acquiredAt).toBe('2023-05-01')
+  })
+
+  it('leaves cost basis and acquired date undefined when a holding has no lots', () => {
+    const a = upsertAccount(db, { name: 'B', kind: 'taxable', institution: 'Fidelity' })
+    insertHolding(db, { accountId: a, symbol: 'X', name: 'X', assetClass: 'us_stock', quantity: 1, price: 1, value: 1 })
+
+    const item = listAccountsWithItems(db)[0].items[0]
+    expect(item.costBasis).toBeUndefined()
+    expect(item.acquiredAt).toBeUndefined()
+  })
+})
+
 // ---- replace-on-reupload through the ingest service ----
 
 function svc(): { ingest: IngestService; db: Db } {

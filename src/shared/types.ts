@@ -57,6 +57,10 @@ export interface AssetItem {
   assetClass?: AssetClass
   quantity?: number
   price?: number
+  /** summed cost basis across lots; undefined when no lots are known */
+  costBasis?: number
+  /** earliest lot acquisition date; undefined when no lots are known */
+  acquiredAt?: string
   apy?: number
   /** holding value, or cash balance */
   value: number

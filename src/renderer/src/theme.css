@@ -636,11 +636,23 @@ input:focus, textarea:focus, select:focus { border-color: var(--hairline-strong)
 .acct-total { font-size: 16px; color: var(--brass-bright); }
 
 .acct-items { width: 100%; border-collapse: collapse; }
+.acct-items th {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--parchment-faint); font-weight: 400;
+  padding: 8px 16px; border-bottom: 1px solid var(--hairline); text-align: left;
+}
+.acct-items th.qty, .acct-items th.price, .acct-items th.val,
+.acct-items th.gain, .acct-items th.rate { text-align: right; }
 .acct-items td { padding: 8px 16px; border-bottom: 1px solid rgba(200,162,75,0.06); font-size: 13px; }
-.acct-items tr:last-child td { border-bottom: none; }
+.acct-items tbody tr:last-child td { border-bottom: none; }
+.acct-items + .acct-items { border-top: 1px solid var(--hairline); }
 .acct-items .sym { font-family: var(--mono); color: var(--brass); }
 .acct-items .desc { color: var(--parchment-dim); }
-.acct-items .qty, .acct-items .price, .acct-items .val { text-align: right; color: var(--parchment); }
+.acct-items .qty, .acct-items .price, .acct-items .val,
+.acct-items .gain, .acct-items .rate { text-align: right; color: var(--parchment); }
+.acct-items .acq { color: var(--parchment-dim); font-family: var(--mono); font-size: 12px; }
+.acct-items td.gain .gain { color: var(--gain); }
+.acct-items td.gain .loss { color: var(--loss); }
 .acct-items .actions { text-align: right; width: 1%; white-space: nowrap; }
 .acct-empty { padding: 14px 16px; color: var(--parchment-faint); font-style: italic; font-size: 13px; }
 

@@ -114,13 +114,20 @@ export function listAccountsWithItems(db: Db): AccountGroup[] {
     .all() as any[]
   const holdings = db.prepare('SELECT * FROM holdings').all() as any[]
   const cash = db.prepare('SELECT * FROM cash').all() as any[]
+  const lotAgg = db
+    .prepare(
+      'SELECT holding_id, SUM(cost_basis) AS cost_basis, MIN(acquired_at) AS acquired_at FROM lots GROUP BY holding_id'
+    )
+    .all() as { holding_id: number; cost_basis: number; acquired_at: string }[]
+  const lotsByHolding = new Map(lotAgg.map((l) => [l.holding_id, l]))
 
   return accounts.map((a) => {
     const items: AssetItem[] = [
       ...holdings
         .filter((h) => h.account_id === a.id)
-        .map(
-          (h): AssetItem => ({
+        .map((h): AssetItem => {
+          const agg = lotsByHolding.get(h.id)
+          return {
             itemType: 'holding',
             id: h.id,
             symbol: h.symbol,
@@ -128,9 +135,11 @@ export function listAccountsWithItems(db: Db): AccountGroup[] {
             assetClass: h.asset_class,
             quantity: h.quantity,
             price: h.price,
+            costBasis: agg?.cost_basis ?? undefined,
+            acquiredAt: agg?.acquired_at ?? undefined,
             value: h.value
-          })
-        ),
+          }
+        }),
       ...cash
         .filter((c) => c.account_id === a.id)
         .map((c): AssetItem => ({ itemType: 'cash', id: c.id, apy: c.apy, value: c.balance }))
