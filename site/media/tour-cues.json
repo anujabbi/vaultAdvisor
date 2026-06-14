@@ -1,0 +1,44 @@
+[
+  {
+    "t": 0.17,
+    "mini": "Private · Local · Yours",
+    "html": "Your whole financial picture — <b>on your machine</b>, never our servers.",
+    "voice": "Your whole financial picture — stored on your machine, never our servers."
+  },
+  {
+    "t": 6.24,
+    "mini": "Accounts",
+    "html": "Every asset you upload, <b>grouped by account</b>.",
+    "voice": "Every asset you upload, grouped by account."
+  },
+  {
+    "t": 10.91,
+    "mini": "Your assets",
+    "html": "Cost basis, acquired dates and <b>unrealized gains</b> at a glance.",
+    "voice": "Cost basis, acquired dates, and unrealized gains, at a glance."
+  },
+  {
+    "t": 18.02,
+    "mini": "Advice with receipts",
+    "html": "Each card explains the <b>why</b> — exact math, cited sources.",
+    "voice": "Each card explains the why, with exact math and cited sources."
+  },
+  {
+    "t": 21.28,
+    "mini": "Execution",
+    "html": "And ends in a <b>checklist you tick off</b> yourself.",
+    "voice": "And it ends in a manual checklist you tick off yourself."
+  },
+  {
+    "t": 27.18,
+    "mini": "Opportunities",
+    "html": "Tax-loss harvesting, idle cash, <b>401(k) headroom</b> and more.",
+    "voice": "Tax-loss harvesting, idle cash, 401k headroom, and more."
+  },
+  {
+    "t": 33.45,
+    "mini": "Yours alone",
+    "html": "Tuned to your goals — analyzed only by <b>your own Claude</b>.",
+    "voice": "Tuned to your goals, and analyzed only by your own Claude. No account linking."
+  }
+]

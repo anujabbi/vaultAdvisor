@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "node scripts/run-tests.cjs",
     "capture:tour": "npm run build && node scripts/capture-tour.cjs",
+    "record:demo": "npm run build && node scripts/record-demo.cjs",
     "postinstall": "node scripts/pin-electron-abi.cjs",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:mac": "electron-vite build && electron-builder --mac"

@@ -93,10 +93,7 @@
   @keyframes tfade{from{opacity:0}to{opacity:1}}
   .tour{width:min(1000px,96vw)}
   .tour-stage{position:relative;aspect-ratio:16/10;border:1px solid var(--hair2);border-radius:14px;overflow:hidden;background:var(--ink2);box-shadow:0 32px 90px rgba(0,0,0,.62),0 0 0 1px rgba(200,162,75,.06)}
-  .tour-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;opacity:0;transition:opacity .85s ease}
-  .tour-stage img.show{opacity:1}
-  .tour-stage img.kb{animation:kb var(--dur,4500ms) linear forwards}
-  @keyframes kb{from{transform:scale(1.006)}to{transform:scale(1.085)}}
+  .tour-stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;background:var(--ink2)}
   .tour-cap{position:absolute;left:0;right:0;bottom:0;padding:64px 32px 24px;background:linear-gradient(0deg,rgba(8,10,9,.94) 8%,rgba(8,10,9,.5) 55%,rgba(8,10,9,0));font-family:var(--serif);font-size:clamp(19px,2.7vw,28px);line-height:1.25;color:var(--parch);opacity:0;transition:opacity .5s ease;z-index:2}
   .tour-cap b{color:var(--brassb);font-weight:400}
   .tour-cap span{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin-bottom:9px}
@@ -250,6 +247,9 @@
 <div class="tour-ov" id="tourOv" aria-hidden="true">
   <div class="tour" role="dialog" aria-label="VaultAdvisor 30-second tour">
     <div class="tour-stage" id="tourStage">
+      <video id="tourVid" muted playsinline preload="metadata" poster="media/tour/01-ledger.png">
+        <source src="media/demo-tour.webm" type="video/webm" />
+      </video>
       <div class="tour-cap" id="tourCap"></div>
       <div class="tour-start" id="tourStart">
         <div class="lead">VaultAdvisor in 30 seconds</div>
@@ -257,7 +257,7 @@
           <button class="btn" id="tourSound" type="button">▶ Play with sound</button>
           <button class="btn-ghost" id="tourMute" type="button">Play muted</button>
         </div>
-        <div class="fine">Real screens · sample data · music &amp; narration generated in your browser</div>
+        <div class="fine">A real screen recording · sample data · music &amp; narration generated in your browser</div>
       </div>
     </div>
     <div class="tour-prog"><i id="tourProg"></i></div>
@@ -271,41 +271,39 @@
 
 <script>
 (function(){
-  var scenes=[
-    {img:'media/tour/01-ledger.png',mini:'Private · Local · Yours',html:'Your whole financial picture — <b>on your machine</b>, never our servers.',voice:'Your whole financial picture — stored on your machine, never our servers.',dur:4500},
-    {img:'media/tour/02-accounts.png',mini:'Accounts',html:'Every asset you upload, <b>grouped by account</b>.',voice:'Every asset you upload, grouped by account.',dur:4000},
-    {img:'media/tour/03-accounts-detail.png',mini:'Your assets',html:'Cost basis, acquired dates and <b>unrealized gains</b> at a glance.',voice:'Cost basis, acquired dates, and unrealized gains, at a glance.',dur:4500},
-    {img:'media/tour/04-advice.png',mini:'Advice with receipts',html:'Each card explains the <b>why</b> — exact math, cited sources.',voice:'Each card explains the why, with exact math and cited sources.',dur:4500},
-    {img:'media/tour/05-checklist.png',mini:'Execution',html:'And ends in a <b>checklist you tick off</b> yourself.',voice:'And ends in a manual checklist you tick off yourself.',dur:4000},
-    {img:'media/tour/06-advice2.png',mini:'Opportunities',html:'Tax-loss harvesting, idle cash, <b>401(k) headroom</b> and more.',voice:'Tax-loss harvesting, idle cash, 401k headroom, and more.',dur:4500},
-    {img:'media/tour/08-profile.png',mini:'Yours alone',html:'Tuned to your goals — analyzed only by <b>your own Claude</b>.',voice:'Tuned to your goals, and analyzed only by your own Claude. No account linking.',dur:5000}
+  var cues=[
+    {t:0.17,mini:'Private · Local · Yours',html:'Your whole financial picture — <b>on your machine</b>, never our servers.',voice:'Your whole financial picture — stored on your machine, never our servers.'},
+    {t:6.24,mini:'Accounts',html:'Every asset you upload, <b>grouped by account</b>.',voice:'Every asset you upload, grouped by account.'},
+    {t:10.91,mini:'Your assets',html:'Cost basis, acquired dates and <b>unrealized gains</b> at a glance.',voice:'Cost basis, acquired dates, and unrealized gains, at a glance.'},
+    {t:18.02,mini:'Advice with receipts',html:'Each card explains the <b>why</b> — exact math, cited sources.',voice:'Each card explains the why, with exact math and cited sources.'},
+    {t:21.28,mini:'Execution',html:'And ends in a <b>checklist you tick off</b> yourself.',voice:'And it ends in a manual checklist you tick off yourself.'},
+    {t:27.18,mini:'Opportunities',html:'Tax-loss harvesting, idle cash, <b>401(k) headroom</b> and more.',voice:'Tax-loss harvesting, idle cash, 401k headroom, and more.'},
+    {t:33.45,mini:'Yours alone',html:'Tuned to your goals — analyzed only by <b>your own Claude</b>.',voice:'Tuned to your goals, and analyzed only by your own Claude. No account linking.'}
   ];
-  var ov=document.getElementById('tourOv'),stage=document.getElementById('tourStage'),
+  var ov=document.getElementById('tourOv'),vid=document.getElementById('tourVid'),
       cap=document.getElementById('tourCap'),prog=document.getElementById('tourProg'),
       startPane=document.getElementById('tourStart'),label=document.getElementById('tourLabel'),
       replay=document.getElementById('tourReplay');
-  var imgs=[],timer=null,sound=false,stopMusic=null,built=false;
-  var total=scenes.reduce(function(s,x){return s+x.dur;},0);
+  var sound=false,stopMusic=null,lastCue=-1;
 
-  function build(){ if(built)return; scenes.forEach(function(s){ var im=document.createElement('img'); im.src=s.img; im.alt=''; stage.insertBefore(im,cap); imgs.push(im); }); built=true; }
-  function stopAll(){ if(timer){clearTimeout(timer);timer=null;} if(stopMusic){stopMusic();stopMusic=null;} if(window.speechSynthesis)speechSynthesis.cancel(); }
-  function reset(){ imgs.forEach(function(im){im.className='';}); cap.style.opacity=0; prog.style.transition='none'; prog.style.width='0'; replay.hidden=true; }
-  function open(){ build(); reset(); startPane.style.display='flex'; label.textContent='Ready'; ov.classList.add('open'); ov.setAttribute('aria-hidden','false'); }
-  function close(){ stopAll(); ov.classList.remove('open'); ov.setAttribute('aria-hidden','true'); }
+  function dur(){ return (vid.duration && isFinite(vid.duration)) ? vid.duration : 38.4; }
+  function stopAudio(){ if(stopMusic){stopMusic();stopMusic=null;} if(window.speechSynthesis)speechSynthesis.cancel(); }
+  function reset(){ try{vid.pause();}catch(e){} try{vid.currentTime=0;}catch(e){} cap.style.opacity=0; prog.style.transition='none'; prog.style.width='0'; replay.hidden=true; lastCue=-1; }
+  function open(){ reset(); startPane.style.display='flex'; label.textContent='Ready'; ov.classList.add('open'); ov.setAttribute('aria-hidden','false'); }
+  function close(){ stopAudio(); try{vid.pause();}catch(e){} ov.classList.remove('open'); ov.setAttribute('aria-hidden','true'); }
 
-  function play(withSound){ stopAll(); reset(); startPane.style.display='none'; sound=withSound;
-    void prog.offsetWidth; prog.style.transition=total+'ms linear'; prog.style.width='100%';
-    if(withSound){ try{ stopMusic=startMusic(total); }catch(e){} }
-    scene(0);
+  function play(withSound){ stopAudio(); startPane.style.display='none'; sound=withSound; lastCue=-1; cap.style.opacity=0;
+    prog.style.transition='width .25s linear';
+    try{vid.currentTime=0;}catch(e){}
+    var go=function(){ if(withSound){ try{ stopMusic=startMusic(dur()*1000); }catch(e){} } vid.play().catch(function(){}); };
+    if(vid.readyState>=1) go(); else vid.addEventListener('loadedmetadata',go,{once:true});
   }
-  function scene(i){ if(i>=scenes.length){ finish(); return; } var s=scenes[i];
-    imgs.forEach(function(im,j){ if(j===i){ im.classList.add('show'); im.classList.remove('kb'); void im.offsetWidth; im.style.setProperty('--dur',s.dur+'ms'); im.classList.add('kb'); } else { im.classList.remove('show'); } });
-    cap.innerHTML='<span>'+s.mini+'</span>'+s.html; cap.style.opacity=0; void cap.offsetWidth; cap.style.opacity=1;
-    label.textContent=(i+1)+' / '+scenes.length;
-    if(sound) speak(s.voice);
-    timer=setTimeout(function(){ cap.style.opacity=0; scene(i+1); }, s.dur);
-  }
-  function finish(){ label.textContent='Done'; replay.hidden=false; }
+  function showCap(c){ cap.innerHTML='<span>'+c.mini+'</span>'+c.html; cap.style.opacity=0; void cap.offsetWidth; cap.style.transition='opacity .5s ease'; cap.style.opacity=1; }
+  vid.addEventListener('timeupdate',function(){ var ct=vid.currentTime,d=dur(); prog.style.width=Math.min(100,ct/d*100)+'%';
+    var i=-1; for(var k=0;k<cues.length;k++){ if(cues[k].t<=ct+0.05) i=k; else break; }
+    if(i>=0 && i!==lastCue){ lastCue=i; showCap(cues[i]); if(sound) speak(cues[i].voice); label.textContent=(i+1)+' / '+cues.length; }
+  });
+  vid.addEventListener('ended',function(){ stopAudio(); label.textContent='Done'; replay.hidden=false; cap.style.opacity=0; });
 
   function speak(t){ if(!('speechSynthesis' in window))return; var u=new SpeechSynthesisUtterance(t); u.rate=1; u.pitch=1; u.volume=1;
     var vs=speechSynthesis.getVoices();
