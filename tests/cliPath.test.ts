@@ -11,7 +11,8 @@ const winCtx = {
 describe('cliCandidates', () => {
   it('prefers the packaged extraResources binary, then dev node_modules', () => {
     const c = cliCandidates(winCtx)
-    expect(c[0]).toBe('C:\\app\\resources\\claude\\claude.exe')
+    // path.join uses host separators; normalize for a platform-agnostic assertion
+    expect(c[0].replace(/\\/g, '/')).toBe('C:/app/resources/claude/claude.exe')
     expect(c[1]).toContain('node_modules')
     expect(c[1]).toContain('claude-agent-sdk-win32-x64')
     expect(c[1].endsWith('claude.exe')).toBe(true)
